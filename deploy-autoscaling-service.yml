@@ -1,0 +1,62 @@
+apiVersion : apps/v1
+kind: Deployment
+metadata:
+  name: my-webdeploy-autoscale
+  labels:
+    app : k8s-deploy-replicas
+spec:
+  selector:
+    matchLabels:
+      project: autoscale 
+  template:
+    metadata:
+      labels: 
+        project: autoscale
+    spec:
+      containers:
+        - name: autoscale-web
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: my-autoscale
+spec: 
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: my-autoscale
+  minReplicas: 3
+  maxReplicas: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 70
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: my-service
+    labels:
+      owner: Pavel
+spec:
+  selector:
+    project: autoscale
+  ports: 
+     - name: app-listener
+       protocol: TCP
+       port: 80
+       targetPort: 80
+  type: LoadBalancer
